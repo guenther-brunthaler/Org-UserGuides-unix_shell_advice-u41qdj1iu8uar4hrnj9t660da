@@ -1,0 +1,30 @@
+Portable Shell Advice
+=====================
+Guenther Brunthaler <gb@emgenxx69lwyn5ctlr4nl64ul.local>
+
+/////
+Format of THIS text: Character set is UTF-8, NFC (UNICODE normalization form "composed"), ASCII "LF" terminates every line. Long lines form flow-text paragraphs. Except when inside preformatted text blocks, between every two logically adjacent paragraphs an empty line is uses as a visual separator.
+/////
+
+This document tries to provide useful information about portable shell programming and standard utility usage.
+
+printf can convert characters to ASCII codes or UNICODE code points
+-------------------------------------------------------------------
+
+----
+$ printf '%d\n' "'A'"
+65
+$ printf '%#x\n' "'€'"
+0x20ac
+----
+
+Note that printf does not interpret strings simply as bytes, but rather converts them into wchar_t (depending on the user's locale) and then outputs the numeric value of the first wide character.
+
+printf can expand "typical" escape sequences
+--------------------------------------------
+
+----
+$ printf '%b\n' "This ist tab-separated \033[32;5mGREEN\tBLINKING\033[0m text."
+This ist tab-separated GREEN    BLINKING text.
+$ man console_codes # Show info about available terminal escape sequences.
+----
