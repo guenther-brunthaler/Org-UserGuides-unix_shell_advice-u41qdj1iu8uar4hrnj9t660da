@@ -8,6 +8,7 @@ Format of THIS text: Character set is UTF-8, NFC (UNICODE normalization form "co
 
 This document tries to provide useful information about portable shell programming and standard utility usage.
 
+
 printf can convert characters to ASCII codes or UNICODE code points
 -------------------------------------------------------------------
 
@@ -20,6 +21,7 @@ $ printf '%#x\n' "'€'"
 
 Note that printf does not interpret strings simply as bytes, but rather converts them into wchar_t (depending on the user's locale) and then outputs the numeric value of the first wide character.
 
+
 printf can expand "typical" escape sequences
 --------------------------------------------
 
@@ -28,3 +30,144 @@ $ printf '%b\n' "This ist tab-separated \033[32;5mGREEN\tBLINKING\033[0m text."
 This ist tab-separated GREEN    BLINKING text.
 $ man console_codes # Show info about available terminal escape sequences.
 ----
+
+
+Avoid the assignment-feature of "local"
+---------------------------------------
+
+'local' is syntactically a normal command rather than an assignment which would treated specially be the shell.
+
+This makes a difference in whether whitespace in the expanded arguments need be quoted or not:
+
+----
+v='a string with whitespace'
+
+# This is OK because it is a shell assignment which does no word splitting:
+local v2
+v2=$v
+
+# This will fail because "local" expects every assignment
+# to be specified as a normal argument to the command:
+local v2=$v
+
+# This will work again:
+local "v2=$v"
+----
+
+In addition to what has been said above, note that "local" is not a feature defined by POSIX, although all modern Bourne shell descendants seem to implement it.
+
+It might be wise to avoid the "local var=initial"-construct completely, because at least in the "dash"-documentation, the assignment-feature of "local" is not mentioned in the man page (even though it is implemented).
+
+
+Don't expect local variables to be initialized
+----------------------------------------------
+
+----
+# Incorrect:
+local out
+for arg
+   out=$out$arg
+done
+echo $out
+----
+
+This is not portable because $out is never initialized explicitly. In order to initialize the variable to an empty string, use either
+
+----
+local out=
+----
+
+(which is less portable) or
+
+----
+local out
+out=
+----
+
+
+The "POSIX" and "C" locales are the same
+----------------------------------------
+
+I used to believe that the "POSIX" locale guarantees ASCII characters set where the "C" locale may only support a subset of ASCII.
+
+However, the POSIX standard actually states that "C" and "POSIX" are just different name for the same locale.
+
+There is no guarantee that the "POSIX" (or "C") locale includes all ASCII characters.
+
+Therefore, it is better to use "C" as a locale name, because it might work for non-POSIX systems as well.
+
+Despite of what has been said above, in practice one can assume that the "C" locale provides either ASCII or EBCDIC as a character set.
+
+
+Ranges in regular expressions can have unexpected elements
+----------------------------------------------------------
+
+Range matching seems to use the current locale's LC_COLLATE weights in order to determine whether a character is within a fiven RegEx range or not:
+
+----
+$ LC_CTYPE=de_DE.UTF8 LC_COLLATE=de_DE.UTF8 expr hällo : '[a-z]*$'
+6
+$ LC_CTYPE=C LC_COLLATE=de_DE.UTF8 expr hällo : '[a-z]*$'
+0
+$ LC_CTYPE=de_DE.UTF8 LC_COLLATE=C expr hällo : '[a-z]*$'
+0
+----
+
+In order to compare ASCII-ranges, it seems to be best to run the command with LC_CTYPE=C.
+
+Even though the character set of locale "C" may actually be EBCDIC rather than ASCII, the relative collation weights will hopefully be the same, yielding the same results.
+
+
+BRE operators '\|', '\+' and '\?' are non-POSIX extensions
+----------------------------------------------------------
+
+Those well-known operators in basic regular expressions are in fact GNU (and BusyBox) extensions.
+
+POSIX does not define them!
+
+The only operator which POSIX BREs support besides '*' is '\{m,n\}'.
+
+{instead of} $ expr x"$string" : x'[0-9]\+'
+
+{better write} $ expr x"$string" : x'[0-9]\{1,\}'
+
+{instead of} $ expr x"$string" : x'[0-9]\?'
+
+{better write} $ expr x"$string" : x'[0-9]\{0,\}'
+
+{instead of} $ expr x"$string" : x'.*\(apple\|banana\)'
+
+{better write} $ expr x"$string" : x'.*\(apple\)' \| x"$string" : x'.*\(banana\)'
+
+
+BREs in "expr" cannot catch the value zero directly
+---------------------------------------------------
+
+When trying to verify that a numeric string $int is a valid integer, the following command would *not* be correct:
+
+$ expr x"$int" : x'\(0\|[1-9][0-9]*\)$' > /dev/null && echo ok || echo bad
+
+First of all, the use of '\|" in a BRE ist not portable.
+
+But besides that, the test will produce a false negative if the value zero is tested.
+
+This is because the ":" operator returns the contents of its first caption, which would be "0" in that case, but expr returns a non-zero return code if the final result is 0 (or null).
+
+The following variant will fix both issues:
+
+$ expr x"$int" = x0 \| x"$int" : x'[1-9][0-9]*$' > /dev/null && echo ok || echo bad
+
+This replaces the non-portable BRE '\|'-operator by the expr '|'-operator and avoids captions alltogether.
+
+And here is a solution for parsing an integer prefix $num from a $string:
+
+$ string='16 MiB'
+num=`expr x"$string" : '\(x0\)' \| x"$string" : '\(x[1-9][0-9]*\)' \| x`; num=${num#x}'"; test -z "$num" && echo "bad"
+
+
+Be aware of locale-dependent behaviour of "sort"
+------------------------------------------------
+
+Not only does $LC_COLLATE influence the way strings are sorted.
+
+But also does $LC_NUMERIC determine how numeric string prefixes are parsed if numeric sorting is used.
