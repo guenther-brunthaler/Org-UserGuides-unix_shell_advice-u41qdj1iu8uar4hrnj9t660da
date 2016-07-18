@@ -1,0 +1,17 @@
+_POSIX_FILESIZEBITS or pathconf(path, _PC_FILESIZEBITS):
+
+POSIX states:
+
+"Minimum number of bits needed to represent, as a signed integer value, the maximum size of a regular file allowed in the specified directory.
+
+Minimum Acceptable Value: 32"
+
+It is unclear whether it is meant "as a valid signed integer value" or rather "as an unsigned integer value after casting it into a signed integer value of the same magnitude".
+
+In particular, on Linux, pathconf() returns 32 when FILESIZEBITS is queried for an MS-DOS FAT filesystem where the maximum file size is 2 ** 32 - 1 bytes.
+
+This size cannot be expressed as a valid signed 32-bit integer value because such a value would need at least 33 bits.
+
+However, it is quite possible to represent the value as an unsigned 32 bit integer value, cast it to a signed integer value, and back without information loss.
+
+Linux therefore seems to interpret POSIX' wording the second way. However, it remains unclear what POSIX actually means.

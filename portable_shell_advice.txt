@@ -140,6 +140,14 @@ The only operator which POSIX BREs support besides '*' is '\{m,n\}'.
 {better write} $ expr x"$string" : x'.*\(apple\)' \| x"$string" : x'.*\(banana\)'
 
 
+BRE '^' and '$' are not allowed as anchors within captures
+----------------------------------------------------------
+
+On the other hand, this would be pretty useless anyway, as BREs do not support an "OR"-operator either. 
+
+Also note that '^' and '$' *are* allowed as anchors in EREs.
+
+
 BREs in "expr" cannot catch the value zero directly
 ---------------------------------------------------
 
@@ -171,3 +179,102 @@ Be aware of locale-dependent behaviour of "sort"
 Not only does $LC_COLLATE influence the way strings are sorted.
 
 But also does $LC_NUMERIC determine how numeric string prefixes are parsed if numeric sorting is used.
+
+"grep" options -E and -F are specified by POSIX
+-----------------------------------------------
+
+By default, the grep only uses BREs, which are pretty limited especially in that they lack an "OR"-operator.
+
+However, "grep -E" changes REs in those tools to be EREs rather than BREs, and relying on support for those switches is portable.
+
+Note that "egrep" and "fgrep" are not defined by POSIX, but "grep -E" and "grep -F") are.
+
+Also note that the -r option of "sed" is a GNU extension. "sed" only supports BREs in a portable way.
+
+
+Don't run a command with closed standard streams
+------------------------------------------------
+
+While it is possible to run a command like this
+
+$ some_command <& - >& - 2>& -
+
+the POSIX standard defines this as implementation-specific behaviour, and states that standard utilities are allowed to not behave as described in this case.
+
+In other words, *never* run any program with one of the three standard streams closed. Always rather redirect to or from /dev/null instead.
+
+The closing of descriptors is only intended for additional file descriptors which have been opened by the script itself.
+
+Of course, any program is free to document that it supports being run with some of its file descriptor closed. However, this cannot be assumed without explicit documentation.
+
+All commands in a pipeline run in separate subshells
+----------------------------------------------------
+
+Do not assume that any part in a pipeline is able to affect the variables of any other part of the pipeline or the process within which the pipeline has been started.
+
+Consider this:
+
+$ export v=1; { echo "2: v was $v" >& 2; v=2; } \
+  | { echo "3: v was $v" >& 2; v=3; }; \
+  echo "1: v is $v" >& 2
+3: v was 1
+2: v was 1
+1: v is 1
+
+While it is clear that "2" and "1" report $v as "1", one could have assumed that "3" would display "2". And, BTW, the "export" does not change anything. The output is the same as without it.
+
+*No* part of a pipeline is run in the context of the invoking top-level shell, and all inherit their variables from the top-level shell, and not from any of the subshells (or external commands) in which the other commands of the same pipeline run.
+
+The return status of the whole pipeline is that of the last command in the pipeline, it does not matter whether any of the other commands fail.
+
+This also applies to the effect of "-e" - even though the subshell inherit its setting and may terminate prematurely because of an error, the top-level shell will not get any indication of that, except for the return code of the last of the commands, which will be the return code of the whole pipeline.
+
+
+How to filter the output of a command but still get its return code
+-------------------------------------------------------------------
+
+Consider this:
+
+if
+	patch file file.patch 2>& 1 | grep -v ^patching >& 2
+then
+	echo "Patch was applied successfully."
+else
+	echo "Aborting - patch failed!"
+	exit
+fi
+
+The intention of this code is to filter the output of "patch", suppressing any "patching..." messages, but copying any other messages that "patch" generated through to standard error.
+
+Unfortunately this code does not work as intended, because not the return status from "patch" will be used as the condition for "if", but rather the return status of "grep"! See the above section about all commands in a pipeline running in separate subshells, and only the last one determining the exit status of the pipeline.
+
+In order to fix things, we need to use separate subprocesses instead of pipelines. This will work:
+
+until
+	fifo=`mktemp -u -- "${TMPDIR:-/tmp}/fifo.XXXXXX"` \
+	&& mkfifo -m 600 -- "$fifo"
+do
+	:
+done
+grep -v ^patching >& 2 || true & filter=$!
+patch file file.patch > "$fifo" 2>& 1; rc=$?
+wait $filter
+rm -- "$fifo"
+if (exit $rc)
+then
+	echo "Patch was applied successfully."
+else
+	echo "Aborting - patch failed!"
+	exit
+fi
+
+Or one could turn things around and run "patch" in the background process, filtering in the top-level shell process. This should work as well:
+
+... [as in first version]
+done
+patch file file.patch > "$fifo" 2>& 1 & worker=$!
+grep -v ^patching < "$fifo" >& 2
+wait $worker; rc=$?
+rm -- "$fifo"
+if (exit $rc)
+... [as in first version]
