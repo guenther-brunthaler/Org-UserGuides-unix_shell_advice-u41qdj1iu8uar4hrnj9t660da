@@ -180,6 +180,7 @@ Not only does $LC_COLLATE influence the way strings are sorted.
 
 But also does $LC_NUMERIC determine how numeric string prefixes are parsed if numeric sorting is used.
 
+
 "grep" options -E and -F are specified by POSIX
 -----------------------------------------------
 
@@ -206,6 +207,7 @@ In other words, *never* run any program with one of the three standard streams c
 The closing of descriptors is only intended for additional file descriptors which have been opened by the script itself.
 
 Of course, any program is free to document that it supports being run with some of its file descriptor closed. However, this cannot be assumed without explicit documentation.
+
 
 All commands in a pipeline run in separate subshells
 ----------------------------------------------------

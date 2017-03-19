@@ -1,4 +1,7 @@
-TARGETS = portable_shell_advice.html
+TARGETS = \
+	POSIX_problems.html \
+	portable_shell_advice.html \
+	unexpected_features.html \
 
 .PHONY: all clean
 

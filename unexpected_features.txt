@@ -48,3 +48,22 @@ First of all, POSIX "sort" can take not just one but an arbitratry number of inp
 Secondly, if the -o option is used to specifiy an output file, that file is allowed to be the same as one of the input files which have been specified as arguments.
 
 Obviously, "sort" needs to read all its input files completely before the actual sort operation can start. But less obviously, it also closes its input files before opening the output file. (Which of course is only possible if "sort" does not write its result to standard output.)
+
+
+"sed" can join lines simply with "s"
+------------------------------------
+
+The G and H commands of sed append text to the pattern space or hold buffer, but they will add a newline first, separating the previous contents and what has just been added.
+
+Frequently this embedded newline is not wanted, but how to get rid of it? There is no "join lines" command, and everyone knows that "sed" cannot be compelled to process the newline it emits at the end of every output line.
+
+It turns out, however, that embedded newlines within the pattern or hold space are different from the newline which will be added when the pattern space is printed.
+
+It *can* be removed by command "s". The following example joins all lines separated by embedded newlines together, inserting "+" between the joined parts:
+
+-----
+$ echo some line | sed 'h; s/^/copy of /; H; g; s/\n/+/'
+some line+copy of some line
+-----
+
+In this example, "h" first saves the original line, and "H" appends a modified copy to it, separated by an embedded newline. The "s" then replaces the embedded newline, thus "joining" the line.
