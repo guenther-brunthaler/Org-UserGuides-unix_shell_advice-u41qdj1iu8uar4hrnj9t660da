@@ -1,0 +1,66 @@
+Aliases are dangerous
+---------------------
+
+POSIX shell aliases are substituted before variables or shell globs are expanded for the command's arguments.
+
+Also, contrary to shell function invocations, aliases are expanded in-line and may convert a seemingly single simple command into a sequence of unrelated commands.
+
+This can be a problem if data is piped into an alias without the user recognizing that fact: Only the first command in the alias will receive the redirection; any remaining expanded commands of the same alias will receive the normal standard input of the process.
+
+Effects can get even weirder if an alias changes shell options temporarily which alter globbing or include "&". But even the inclusion of just ";" can create trouble unless the alias author considers all consequences.
+
+Taken together, aliases can do some things normal shell functions can't, but none of them are normally useful.
+
+If an attacker can inject an alias definition into a shell, he can alter the shell's normal operation in subtle ways and do things one thought would be impossible without modifying the shell binary.
+
+Avoid aliases in scripts and use them only when absolutely necessary.
+
+If in doubt whether an alias has been defined to override a critical command,
+
+use
+
+$ command thecommand
+
+(but "command" may have also be redefined as an alias) or
+
+$ \thecommand
+
+The latter works, because alias substitution takes place before the "unnecessary" Backslash will be removed by the shell parser. (This trick has been learned from an article written by Simon Tatham.)
+
+
+"stat" is not a POSIX utility
+-----------------------------
+
+
+"seq" is not a POSIX utility
+----------------------------
+
+
+"which" is not a POSIX utility
+------------------------------
+
+
+POSIX "bc"
+----------
+
+It has neither "else" nor "do". None of the x1, x2, x3 expressions in "for (x1; x2; x3)" can be omitted.
+
+The "^" exponentiation operator does not exist.
+
+There is no read() function.
+
+There are no "print" or "halt", "limits" or "warranty" statements.
+
+There is no "last" variable and neither "." as an alternative for it.
+
+Relational expressions are only allowed in control expressions of conditional statements. They cannot produce "boolean values". Boolean operators "||", "&&", "!" do not exist either.
+
+Only single lower-case letters are allowed as identifiers.
+
+Only ANSI-C 89 comments "/* */" are supported, not shell comments "#".
+
+GNU "bc" allows all these as extensions.
+
+Avoid spaces in numbers (like in "1 000 000"). Not all bc implementations support them.
+
+Avoid passing arrays to functions. POSIX currently specifies no method how to pass an array as an actual parameter, even though it defines how to declare arrays as formal parameters. It is also unclear whether those arrays would be passed by value or by reference. Several existing implementations support passing arrays only by value.

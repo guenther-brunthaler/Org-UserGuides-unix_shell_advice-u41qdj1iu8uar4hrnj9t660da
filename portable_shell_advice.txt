@@ -105,12 +105,12 @@ Ranges in regular expressions can have unexpected elements
 Range matching seems to use the current locale's LC_COLLATE weights in order to determine whether a character is within a fiven RegEx range or not:
 
 ----
-$ LC_CTYPE=de_DE.UTF8 LC_COLLATE=de_DE.UTF8 expr hällo : '[a-z]*$'
+$ LC_CTYPE=de_DE.UTF8 LC_COLLATE=de_DE.UTF8 expr hällo : '[a-z]*'
 6
-$ LC_CTYPE=C LC_COLLATE=de_DE.UTF8 expr hällo : '[a-z]*$'
-0
-$ LC_CTYPE=de_DE.UTF8 LC_COLLATE=C expr hällo : '[a-z]*$'
-0
+$ LC_CTYPE=C LC_COLLATE=de_DE.UTF8 expr hällo : '[a-z]*'
+1
+$ LC_CTYPE=de_DE.UTF8 LC_COLLATE=C expr hällo : '[a-z]*'
+1
 ----
 
 In order to compare ASCII-ranges, it seems to be best to run the command with LC_CTYPE=C.
@@ -184,11 +184,11 @@ But also does $LC_NUMERIC determine how numeric string prefixes are parsed if nu
 "grep" options -E and -F are specified by POSIX
 -----------------------------------------------
 
-By default, the grep only uses BREs, which are pretty limited especially in that they lack an "OR"-operator.
+By default, grep only uses BREs, which are pretty limited especially in that they lack an "OR"-operator.
 
 However, "grep -E" changes REs in those tools to be EREs rather than BREs, and relying on support for those switches is portable.
 
-Note that "egrep" and "fgrep" are not defined by POSIX, but "grep -E" and "grep -F") are.
+Note that "egrep" and "fgrep" are not defined by POSIX, but "grep -E" and "grep -F" (which to the same) are.
 
 Also note that the -r option of "sed" is a GNU extension. "sed" only supports BREs in a portable way.
 
@@ -238,7 +238,7 @@ How to filter the output of a command but still get its return code
 Consider this:
 
 if
-	patch file file.patch 2>& 1 | grep -v ^patching >& 2
+	patch -i file.patch file 2>& 1 | grep -v ^patching >& 2
 then
 	echo "Patch was applied successfully."
 else
@@ -258,7 +258,7 @@ until
 do
 	:
 done
-grep -v ^patching >& 2 || true & filter=$!
+grep -v ^patching < "$fifo" >& 2 || true & filter=$!
 patch file file.patch > "$fifo" 2>& 1; rc=$?
 wait $filter
 rm -- "$fifo"
@@ -280,3 +280,36 @@ wait $worker; rc=$?
 rm -- "$fifo"
 if (exit $rc)
 ... [as in first version]
+
+
+Use "command -v" rather than "which" or "type"
+----------------------------------------------
+
+Although "which" will usually gives you exactly the answer you were looking for, it is unfortunately not part of POSIX and should therefore not be used in portable shell scripts.
+
+Historically "which" was available as an external shell script long before "command" or "type", but it never managed to be standardized (my guess: too many sighly different implementations).
+
+Both "type" and "command" are definied by POSIX and must be implemented as shell built-ins.
+
+However, "type" was not implemented in all UNIXes, and early versions had bugs regardings its return code.
+
+After all, "command -v" seems to be the most portable way to check whether a command is available.
+
+However, "command -v" does not necessarily return a path - in case of shell functions or built-ins it just prints its argument without a path or even an alias definition!
+
+Therefore, it is best to ignore the output of "command -v" and just use its return code to determine whether a command is available or not.
+
+Even though I could not manage to get "command -v" writing anything to standard error, most scripts seem to redirect stderr also. In other words,
+
+----
+if command -f "$some_command" > /dev/null 2>& 1
+then
+	# Just use it, don't try to figure out its executable path name.
+	...
+	"$some_command" some arguments
+	...
+else
+	echo "Error: there is no '$some_command'!" >& 2
+	false || exit
+fi
+----
