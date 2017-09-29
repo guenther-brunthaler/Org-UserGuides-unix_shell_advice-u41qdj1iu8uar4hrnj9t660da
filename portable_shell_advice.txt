@@ -313,3 +313,39 @@ else
 	false || exit
 fi
 ----
+
+
+Speeding up the operation of "find"
+-----------------------------------
+
+First of all, the "-exec" primary can pass multiple arguments similar to "xargs" to the external command, when "+" rather than ";" is used to terminate the external command arguments. This can avoid many invocations of the external command, but of course only if the external command accepts multiple path names as arguments. Example:
+
+$ find . -nouser -exec chown nobody {} +
+
+reassigns ownership of every file or directory not currently owned by a valid user to the user "nobody". The invocation of "chown" will replace the "{}" argument by multiple arguments (but at least one), instead of invoking "chown" once for every path name.
+
+Second, use "-prune" instead of explicitly testing the file type or using other primaries which require an internal stat() syscall.
+
+Remember, UNIX directory entries only contain names and inodes, and no other information.
+
+The "-type" primary (and others like "-perm") need information which is not present in the directory entries, so find needs to issue a stat() or lstat() system call internally which reads the entrie's inode from disk into memory.
+
+This will (unless cached by the system from previous accesses) trigger an addional read operation which will quite possibly also require the disk heads to be moved, which is a very expensive operation (at least if mechanical disks are involved).
+
+If the "-prune"-primary is not used, "find" has to stat() every filesystem object found in order to find out whether it is a directory and should be traversed recursively. With "-prune" present, "find" does not need to use stat() unless other primaries are involved which require it.
+
+For instance,
+
+$ find . -name '*.tmp' -prune -type f -exec rm -- {} +
+
+deletes all files *.tmp in the current directory, and "find" does not need to stat() any of the names unless they match the shell patterh "*.tmp".
+
+Therefore, "-prune", "-name" and "-path" primaries should always be tested first if possible, reducing the number of times "find" needs to stat() the file system objects in order to find out what they actually are (files, directories - whatever).
+
+Using "-prune" this way also avoids using the non-portable "-mindepth" and "-maxdepth" extensions to "find" for restricting its operation to a single directory.
+
+Here is another example (which cannot avoid stat(), but at least avoids "-mindepth", "-maxdepth" or the slightly more expensive "-path" primary): Show those non-hidden entries of the current directory which are not directories themselves
+
+$ find . \( -name . -o -prune \) ! -name '.*' ! -type d | sed s:^./:: | sort
+
+Note that this example avoids the evaluation of "-prune .", because otherwise not even the current directory would be enumerated.

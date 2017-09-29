@@ -44,3 +44,51 @@ Another example:
 $ { seq 10; echo E; } | sed '/^E$/ {g; s/\n/+/g; s/^+//; q}; H; d'
 1+2+3+4+5+6+7+8+9+10
 -----
+
+
+"fold" -s does not remove spaced at EOL
+---------------------------------------
+
+When using option "-s" to break long lines representing paragraphs into multiple shorter lines that do not exceed the display width, it inserts line breaks *after* the space which follows words.
+
+This means the resulting new lines will have a space at their end, making it easy to undo the transformation later if needed (assuming the original lines did not also have spaces at their end).
+
+This also means "fold -s" can be used for processing RFC 3676 "format=flowed; DelSp=No"-style e-mail text to some degree, although additional processing may be required there when quoted lines or space-stuffing is present.
+
+
+Arithmetic expansion provides bitwise ANSI-C operators
+------------------------------------------------------
+
+The POSIX standard defines that the $((...)) construct used for evaluating arithmetic expressions directly by the shell supports all ANCI-C operators, except "++", "--" and "sizeof".
+
+This implies that all remaining operators, including all bitwise operators and shift operators, must be present.
+
+The same applies to all comparison and assignment operators, including the combined assignment operators like "+=".
+
+Neither are boolean operators like "&&" excluded, nor is "?"/":".
+
+Only the range of the numeric type used for evaluation is restricted and must not be expected to be provide more possible values than "signed long".
+
+Decimal, octal and hexadecimal constants are allowed as part of the expressions (presumably without any length suffix as only a single arithmetic type is supported by arithmetic expansion anyway.)
+
+Another thing to consider is the fact that POSIX allows the arithmetic type for arithmetic expansion to be wider than "signed long". It is even allowed to be a floating-point type!
+
+The only guarantee is that the arithmetic expressions will return the same result as if "signed long" was used, and even that is only guaranteed as long as there are no arithmetic overflows.
+
+One consequence of those guarantees is that the result of the division operator will always be an integer, exactly as in C.
+
+But it also means that there is no guarantee that arithmetic expansion uses 2's complement arithmetic.
+
+It also could generate NaNs, INF, signed zero and other results that floating-point arithmetic generally supports.
+
+Finally, there is no guarantee that binary floating point arithmetic is used - decimal floating point is also a possibility.
+
+
+Breaking out of "for"-loops in "sh" retains the current value
+-------------------------------------------------------------
+
+POSIX specifies an example for usage of the "c99"-utilty from which can be inferred that "break"ing out of a "for" loop in a "sh" shell script does not invalidate the current value of the loop variable used for enumeration.
+
+In addition to that, the same example also shows that the loop variable contains the last enumerated value if the loop is terminated normally, i. e. without "break".
+
+However, it remains unclear what value the loop variable will have if there were no values to be enumerated, i. e. if the loop body was never executed. Therefore, one has to assume this to be implementation-dependent behavior.

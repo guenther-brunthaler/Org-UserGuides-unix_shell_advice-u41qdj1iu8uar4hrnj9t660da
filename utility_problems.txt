@@ -1,0 +1,20 @@
+Utility problems
+================
+
+Some of the command line utilities defined by POSIX may provide challenges for the unaware.
+
+
+Editors should not automatically strip whitespace at the ends of lines
+----------------------------------------------------------------------
+
+It is compelling to configure your favorite text editor in such a way that it automatically removes any whitspace immediately before the end of lines, because such whitespace has been put there by mistake in the majority of situations.
+
+However, there are some reasons why not to do so.
+
+First, existing POSIX utilities such as "gencat" expect input files where a command does different things if there is a space after the command and before the end of the line or not.
+
+Second, "fold -s" word-wraps text with "one paragraph per line"-semantics by inserting a newline character *after* a space character, rather than replacing it with a newline. This has the affect that the fold operation becomes revertible - just remove the newlines following a space, and the text is as before.
+
+Third, RFC-3676 defines the "format=flowed" format for e-mail text messages, which also use spaces immediately before the end of lines to distinguish between continuation lines of a paragraph or lines which start a new paragraph.
+
+Therefore, it is not a good idea to generally strip whitespace before EOL in arbitrary text files, even though it is OK to do so for known source text file types where adverse effects are not expected.

@@ -64,3 +64,71 @@ GNU "bc" allows all these as extensions.
 Avoid spaces in numbers (like in "1 000 000"). Not all bc implementations support them.
 
 Avoid passing arrays to functions. POSIX currently specifies no method how to pass an array as an actual parameter, even though it defines how to declare arrays as formal parameters. It is also unclear whether those arrays would be passed by value or by reference. Several existing implementations support passing arrays only by value.
+
+
+File-descriptor numbers for redirections are limited
+----------------------------------------------------
+
+POSIX only guarantees that file decriptor numbers 0 through 9 must be available for shell redirection. This means that code such as
+
+$ sh -c 'echo hello >& 12' 12<& 1
+
+may be syntactically correct, but may still fail because 12 is greater than 9.
+
+To illustrate the problem: The above command works fine when "sh" refers to "bash" or to "busybox ash", but fails when "sh" refers to "dash".
+
+POSIX only reserves the file descriptor numbers 0, 1 and 2 for special purposes (stdin, stdout and stderr).
+
+But I have seen comments that some shell implementations reserve additional file descriptors for special purposes, such as logging or debugging output. Usually, file descriptor 3 and maybe even 4 seem to be reserved in such cases.
+
+Even though this is not backed by POSIX, it seems a good idea to only choose file-descriptors for use in a script in the following order: 5, 6, 7, 8, 9, 4, 3 or 9, 8, 7, 6, 5, 4, 3.
+
+This should minimize the possibility for conflicts with file descriptor numbers reserved by a shell implementation.
+
+
+Option parsing for the C compiler does not support switch clustering
+--------------------------------------------------------------------
+
+POSIX defines that the "c99" utility does not "need" to support option switch clustering, even though it may do so.
+
+Which means one cannot rely on switch clustering for "c99".
+
+That is, use
+
+$ c99 -s -O -D NDEBUG file.c
+
+rather than
+
+$ c99 -sOD NDEBUG file.c
+
+It seems reasonable to assume the same restriction for the older "cc" utility which is no longer defined by POSIX.
+
+I recommend "command -v"-checking for the presence of "c99" first, falling back to "cc" if not found.
+
+
+Providing option values in the same command-line argument is not portable
+-------------------------------------------------------------------------
+
+Use
+
+$ c99 -D NDEBUG -I ~/my_includes -l m file.c
+
+rather than
+
+$ c99 -DNDEBUG -I~/my_includes -lm file.c
+
+
+"head -n" might read more than just the specified number of lines
+-----------------------------------------------------------------
+
+It seems "head -n" uses normal buffered reads via fread() internally, which means it reads its input in fixed-size chunks and not necessarily line by line.
+
+This means it is dangerous to do something like this to sort a CSV file except for its header line using the following command:
+
+$ { head -n 1 && sort; } < unsorted.csv > sorted.csv
+
+because "head" might throw away data already read into its buffer which "sort" will then be missing.
+
+Better use the shell's built-in "read" command in such cases, which always reads its input line by line:
+
+$ { IFS= read -r L && printf '%s\n' "$L" && sort; } < unsorted.csv > sorted.csv
