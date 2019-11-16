@@ -1,3 +1,14 @@
+Unexpected features
+===================
+Guenther Brunthaler <gb@emgenxx69lwyn5ctlr4nl64ul.local>
+v2019.320
+
+Copyright (c) 2019 Guenther Brunthaler. All rights reserved.
+
+This document is free documentation.
+Distribution is permitted under the terms of the GFDL-1.3.
+
+
 Empty entries in $PATH
 ----------------------
 
@@ -92,3 +103,13 @@ POSIX specifies an example for usage of the "c99"-utilty from which can be infer
 In addition to that, the same example also shows that the loop variable contains the last enumerated value if the loop is terminated normally, i. e. without "break".
 
 However, it remains unclear what value the loop variable will have if there were no values to be enumerated, i. e. if the loop body was never executed. Therefore, one has to assume this to be implementation-dependent behavior.
+
+
+Shebang script interpreters can be written as shell scripts
+-----------------------------------------------------------
+
+The executable specified after the "#!" in a shebang line cannot be a shell script. But it is possible to specify /usr/bin/env as such an executable, and use the name of a shell script in $PATH as its only argument.
+
+This shell script will then be invoked as an interpreter by /usr/bin/env and will be passed the name of the invoking script (to be interpreted) as its only argument.
+
+Further information required by the interpreter script, if any, can be provided by special comments in the invoking script.

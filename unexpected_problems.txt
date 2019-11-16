@@ -1,3 +1,14 @@
+Unexpected problems
+===================
+Guenther Brunthaler <gb@emgenxx69lwyn5ctlr4nl64ul.local>
+v2019.320
+
+Copyright (c) 2019 Guenther Brunthaler. All rights reserved.
+
+This document is free documentation.
+Distribution is permitted under the terms of the GFDL-1.3.
+
+
 Aliases are dangerous
 ---------------------
 
@@ -38,6 +49,8 @@ The latter works, because alias substitution takes place before the "unnecessary
 
 "which" is not a POSIX utility
 ------------------------------
+
+"command -v" is the closest portable approximation.
 
 
 POSIX "bc"
@@ -132,3 +145,53 @@ because "head" might throw away data already read into its buffer which "sort" w
 Better use the shell's built-in "read" command in such cases, which always reads its input line by line:
 
 $ { IFS= read -r L && printf '%s\n' "$L" && sort; } < unsorted.csv > sorted.csv
+
+
+"xargs" and arbitrary file lists
+--------------------------------
+
+The first problem is that "xargs" does not tolerate spaces in file names - it interprets them as argument separators.
+
+This can easily fixed, however, by prefixing every character in the $file_list (containing one file per line) by a backslash:
+
+$ sed "s/./\\\\&/g" < $file_list | xargs $some_command ...
+
+However, there is a second problem which makes xargs almost useless with im many cases: It does not recognize empty file lists.
+
+That is,
+
+$ true | xargs echo running
+
+will execute the command once without any arguments, although one might expect it would not execute the command at all.
+
+Note that "xargs" can often be replaced by "find"'s "-exec ... +"-construct, especially when filenames are fed into "xargs". Consider replacing
+
+$ ls *.txt | xargs cksum
+
+with
+
+$ find . ! -path . -prune -name '*.txt' -exec cksum {} +
+
+which is not only as efficient as "xargs" but handles tricky filenames much better.
+
+
+$SHELL does not need to be an absolute path
+-------------------------------------------
+
+On a "systemd"-based installation, I encountered a $SHELL containing just the string "bash", not "/bin/bash". Instead of something like
+
+----
+test -x "${SHELL:=/bin/sh}" || { echo 'invalid $SHELL!' >& 2; false || exit; }
+"$SHELL" some_script.sh
+----
+
+better do this:
+
+----
+case ${SHELL:=/bin/sh} in
+	/*) ;;
+	*) SHELL=`command -v -- "$SHELL"`
+esac
+test -x "$SHELL" || { echo 'invalid $SHELL!' >& 2; false || exit; }
+"$SHELL" some_script.sh
+----

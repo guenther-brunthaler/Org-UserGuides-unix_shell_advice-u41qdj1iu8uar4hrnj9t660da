@@ -1,6 +1,13 @@
 Portable Shell Advice
 =====================
 Guenther Brunthaler <gb@emgenxx69lwyn5ctlr4nl64ul.local>
+v2019.320
+
+Copyright (c) 2019 Guenther Brunthaler. All rights reserved.
+
+This document is free documentation.
+Distribution is permitted under the terms of the GFDL-1.3.
+
 
 /////
 Format of THIS text: Character set is UTF-8, NFC (UNICODE normalization form "composed"), ASCII "LF" terminates every line. Long lines form flow-text paragraphs. Except when inside preformatted text blocks, between every two logically adjacent paragraphs an empty line is uses as a visual separator.
