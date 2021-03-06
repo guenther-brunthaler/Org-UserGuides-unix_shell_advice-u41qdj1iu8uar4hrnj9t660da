@@ -1,7 +1,7 @@
 Unexpected problems
 ===================
 Guenther Brunthaler <gb@emgenxx69lwyn5ctlr4nl64ul.local>
-v2019.320
+v2021.65
 
 Copyright (c) 2019 Guenther Brunthaler. All rights reserved.
 
@@ -58,6 +58,8 @@ POSIX "bc"
 
 It has neither "else" nor "do". None of the x1, x2, x3 expressions in "for (x1; x2; x3)" can be omitted.
 
+When returning an actual value from a function, the argument of "return" must be enclosed within round parentheses.
+
 The "^" exponentiation operator does not exist.
 
 There is no read() function.
@@ -68,11 +70,13 @@ There is no "last" variable and neither "." as an alternative for it.
 
 Relational expressions are only allowed in control expressions of conditional statements. They cannot produce "boolean values". Boolean operators "||", "&&", "!" do not exist either.
 
-Only single lower-case letters are allowed as identifiers.
+Only single lower-case letters are allowed as identifiers. However, variables, arrays and functions reside in different name spaces.
 
 Only ANSI-C 89 comments "/* */" are supported, not shell comments "#".
 
 GNU "bc" allows all these as extensions.
+
+Mutually recursive functions do not work. At least not in GNU "bc".
 
 Avoid spaces in numbers (like in "1 000 000"). Not all bc implementations support them.
 
